@@ -1,73 +1,77 @@
 import React, { useState } from 'react';
 import TomTomMap from './components/TomTomMap';
-import Sidebar from './components/Sidebar';
-import LoginPage from './components/LoginPage'; // Import the new login page
+import MissionControl from './components/MissionControl';
+import LoginPage from './components/LoginPage';
 import * as ttServices from '@tomtom-international/web-sdk-services';
 
 function App() {
-  const API_KEY = 'PRlm8qnYX06Hehb10brSw6gmIJ6iWz7X';
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Authentication state
-  const [liveIncidents, setLiveIncidents] = useState([]);
-  const [routeData, setRouteData] = useState(null);
-  const [markers, setMarkers] = useState([]);
-  
-  // Driver Profile Detail
-  const [driver, setDriver] = useState({
-    name: "Alex Johnson",
-    id: "DRV-9921",
-    vehicle: "Heavy Truck - Plate: TN-01-AX",
-    status: "Active"
-  });
+  const API_KEY = 'PRlm8qnYX06Hehb10brSw6gmIJ6iWz7X';
+  const [view, setView] = useState('login'); // 'login', 'mission', 'navigation'
+  const [routeData, setRouteData] = useState(null);
+  const [markers, setMarkers] = useState([]);
+  const [loginTime, setLoginTime] = useState(null);
+  const [driver] = useState({ name: "Alex Johnson", id: "DRV-9921", vehicle: "Heavy Truck" });
 
-  const handleLogin = (credentials) => {
-    // In a real app, you'd verify credentials here. 
-    // For the hackathon, we simply log them in
-    setDriver(prev => ({ ...prev, id: credentials.id, name: "Driver " + credentials.id }));
-    setIsLoggedIn(true);
-  };
+  const handleLogin = (credentials) => {
+    setLoginTime(new Date().toLocaleString()); // Record start for fatigue tracking
+    setView('mission');
+  };
 
-  const handleAddMarker = (pos, color) => {
-    setMarkers(prev => [...prev, { pos, color }]);
-  };
+  const handleStartMission = (start, stops) => {
+    const locations = [start, ...stops].map(s => `${s.pos.lng},${s.pos.lat}`).join(':');
+    
+    ttServices.services.calculateRoute({
+      key: API_KEY,
+      locations: locations,
+      computeBestOrder: true, // AI Optimization
+      traffic: true,         // Real-time accident data
+      routeType: 'fastest'
+    }).then(result => {
+      setRouteData(result.toGeoJson());
+      setView('navigation'); // Transition to full-screen map
+    });
+  };
+  const handleAddMarker = (pos, color) => {
+    setMarkers(prev => [...prev, { pos, color }]);
+  };
 
-  const handlePlanRoute = (start, stops) => {
-    const locations = [start, ...stops].map(s => `${s.pos.lng},${s.pos.lat}`).join(':');
-    
-    ttServices.services.calculateRoute({
-      key: API_KEY,
-      locations: locations,
-      computeBestOrder: true, // Optimizes the sequence of multiple stops
-      traffic: true,         // Incorporates live traffic data
-      routeType: 'fastest'   // Prioritizes the quickest arrival
-    }).then(result => {
-      setRouteData(result.toGeoJson());
-    });
-  };
+  // Rendering logic for full-screen transitions
+  if (view === 'login') return <LoginPage onLogin={handleLogin} />;
 
-  // 1. Show Login Page if not authenticated
-  if (!isLoggedIn) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
+  if (view === 'mission') {
+    return (
+      <MissionControl 
+        driver={driver} 
+        loginTime={loginTime}
+        onPlanRoute={handleStartMission}
+        onAddMarker={handleAddMarker}
+        apiKey={API_KEY}
+      />
+    );
+  }
 
-  // 2. Show Dashboard if authenticated
-  return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#f4f7f9' }}>
-      <Sidebar 
-        driver={driver} 
-        onPlanRoute={handlePlanRoute}
-        onAddMarker={handleAddMarker}
-        apiKey={API_KEY}
-      />
-      <div style={{ flexGrow: 1, position: 'relative' }}>
-        <TomTomMap 
-          apiKey={API_KEY} 
-          setIncidents={setLiveIncidents} 
-          routeData={routeData}
-          markers={markers} 
-        />
-      </div>
-    </div>
-  );
+  return (
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* Floating Back Button to return to Mission Control */}
+      <button 
+        onClick={() => setView('mission')}
+        style={{
+          position: 'absolute', top: '20px', left: '20px', zIndex: 1000,
+          padding: '12px 24px', background: 'white', border: 'none',
+          borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+        }}
+      >
+        ← Edit Mission
+      </button>
+      
+      <TomTomMap 
+        apiKey={API_KEY} 
+        routeData={routeData}
+        markers={markers} 
+      />
+    </div>
+  );
 }
 
 export default App;
