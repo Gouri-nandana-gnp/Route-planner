@@ -6,24 +6,30 @@ import FatigueAlert from './components/FatigueAlert';
 import ManagerDashboard from './components/ManagerDashboard'; 
 import * as ttServices from '@tomtom-international/web-sdk-services';
 
+// 1. IMPORT the Prediction logic and component
+import { calculateAIPrediction } from './services/mlPredictor';
+import PredictiveInsights from './components/PredictiveInsights';
+
 function App() {
   const API_KEY = 'PRlm8qnYX06Hehb10brSw6gmIJ6iWz7X';
 
   // Navigation State
-  const [view, setView] = useState('login'); // 'login', 'manager', 'mission', 'navigation'
+  const [view, setView] = useState('login'); 
   const [user, setUser] = useState(null);
   const [routeData, setRouteData] = useState(null);
   const [markers, setMarkers] = useState([]);
-  const [loginTime, setLoginTime] = useState(null);
+  const [loginTime, setLoginTime] = useState(null); // Will store Date object
   const [showFatigueWarning, setShowFatigueWarning] = useState(false);
   const [driver, setDriver] = useState({ name: "", id: "" });
+  const [aiData, setAiData] = useState(null); // Stores AI result
 
   // Handle Login Logic
   const handleLogin = (userData) => {
     setUser(userData);
-    setLoginTime(new Date().toLocaleTimeString());
     
-    // CONNECTION POINT: Switch view based on role
+    // CRITICAL: Save as Date object so ML can calculate shift duration
+    setLoginTime(new Date()); 
+    
     if (userData.role === 'manager') {
       setView('manager');
     } else {
@@ -38,6 +44,7 @@ function App() {
     setUser(null);
     setRouteData(null);
     setMarkers([]);
+    setAiData(null);
   };
 
   // Route Planning (Driver Logic)
@@ -52,6 +59,13 @@ function App() {
       traffic: true,
       travelMode: 'truck'
     }).then(result => {
+      // 2. Get Raw Traffic Data
+      const trafficSec = result.routes[0].summary.trafficDelayInSeconds;
+
+      // 3. GENERATE AI PREDICTION (Weather, Traffic, Availability)
+      const prediction = calculateAIPrediction(trafficSec, loginTime);
+      setAiData(prediction); 
+
       setRouteData(result.toGeoJson());
       setView('navigation');
     }).catch(err => alert("Routing Error"));
@@ -64,6 +78,14 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [view]);
+
+  // Style for the back button
+  const backBtn = { 
+    position: 'absolute', zIndex: 1000, top: '20px', left: '20px', 
+    padding: '10px 20px', background: 'white', border: 'none', 
+    borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', 
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)' 
+  };
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
@@ -79,7 +101,9 @@ function App() {
       {/* 3. Driver Mission Planning */}
       {view === 'mission' && (
         <MissionControl 
-          driver={driver} loginTime={loginTime} apiKey={API_KEY}
+          driver={driver} 
+          loginTime={loginTime ? loginTime.toLocaleTimeString() : ""} // Convert back to string for UI
+          apiKey={API_KEY}
           onPlanRoute={handleStartMission}
           onAddMarker={(pos, color) => setMarkers(prev => [...prev, { pos, color }])}
         />
@@ -88,13 +112,14 @@ function App() {
       {/* 4. Map Navigation View */}
       {view === 'navigation' && (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-          <button 
-            onClick={() => setView('mission')} 
-            style={{ position: 'absolute', zIndex: 1000, top: '20px', left: '20px', padding: '10px 20px', background: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.2)' }}
-          >
-            ← Back
-          </button>
+          
+          <button onClick={() => setView('mission')} style={backBtn}>← Back</button>
+          
+          {/* 5. ADDED: THE PREDICTIVE UI LAYER */}
+          <PredictiveInsights data={aiData} />
+
           {showFatigueWarning && <FatigueAlert onDismiss={() => setShowFatigueWarning(false)} />}
+          
           <TomTomMap apiKey={API_KEY} routeData={routeData} markers={markers} />
         </div>
       )}
