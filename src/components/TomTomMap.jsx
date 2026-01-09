@@ -7,18 +7,18 @@ const TomTomMap = ({ apiKey, routeData, markers = [] }) => {
   const mapInstance = useRef();
   const markersRef = useRef([]);
 
+  // 1. Initialize Map
   useEffect(() => {
     const map = tt.map({
-      key: apiKey, // Pass the apiKey prop here
+      key: apiKey,
       container: mapElement.current,
-      center: [77.5946, 12.9716],
-      zoom: 12
+      center: [76.2673, 9.9312], // Kochi area based on your screenshot
+      zoom: 10
     });
 
     map.on('load', () => {
       map.addTier(new tt.TrafficIncidentTier({ key: apiKey }));
       map.addTier(new tt.TrafficFlowTilesTier({ key: apiKey }));
-
       map.resize();
     });
 
@@ -26,60 +26,80 @@ const TomTomMap = ({ apiKey, routeData, markers = [] }) => {
     return () => map.remove();
   }, [apiKey]);
 
+  // 2. Draw Route (Enhanced Logic)
   useEffect(() => {
-    if (mapInstance.current && routeData) {
-      if (mapInstance.current.getLayer('route')) {
-        mapInstance.current.removeLayer('route');
-        mapInstance.current.removeSource('route');
+    const map = mapInstance.current;
+
+    if (map && routeData) {
+      // Function to perform the actual drawing
+      const addRouteLayer = () => {
+        // Clean up previous route
+        if (map.getLayer('route')) {
+          map.removeLayer('route');
+          map.removeSource('route');
+        }
+
+        // Add Source and Layer
+        map.addSource('route', {
+          type: 'geojson',
+          data: routeData
+        });
+
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#007bff', // Bright Blue
+            'line-width': 6,
+            'line-opacity': 0.8
+          }
+        });
+
+        // Zoom to fit the route
+        const bounds = new tt.LngLatBounds();
+        routeData.features[0].geometry.coordinates.forEach(point => bounds.extend(point));
+        map.fitBounds(bounds, { padding: 50 });
+      };
+
+      // CRITICAL FIX: Wait for Style to load
+      if (!map.isStyleLoaded()) {
+        map.once('styledata', addRouteLayer);
+      } else {
+        addRouteLayer();
       }
-
-      mapInstance.current.addLayer({
-        id: 'route',
-        type: 'line',
-        source: { type: 'geojson', data: routeData },
-        paint: { 'line-color': '#28a745', 'line-width': 6 }
-      });
-
-      const bounds = new tt.LngLatBounds();
-      routeData.features[0].geometry.coordinates.forEach(point => bounds.extend(point));
-      mapInstance.current.fitBounds(bounds, { padding: 50 });
     }
   }, [routeData]);
 
+  // 3. Draw Markers (Using standard tt.Marker for reliability)
   useEffect(() => {
-    if (mapInstance.current && markers.length > 0) {
-      if (mapInstance.current.getSource('markers')) {
-        mapInstance.current.removeSource('markers');
-        mapInstance.current.removeLayer('markers');
-      }
+    const map = mapInstance.current;
+    if (map) {
+      // Clear old markers
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
 
-      mapInstance.current.addSource('markers', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: markers
-        }
-      });
-
-      mapInstance.current.addLayer({
-        id: 'markers',
-        type: 'circle',
-        source: 'markers',
-        paint: {
-          'circle-radius': 5,
-          'circle-color': marker => marker.color
-        }
-      });
-
-      mapInstance.current.getSource('markers').setData({
-        type: 'FeatureCollection',
-        features: markers
+      // Add new markers
+      markers.forEach(markerData => {
+        const marker = new tt.Marker({
+          color: markerData.color || '#333'
+        })
+          .setLngLat([markerData.pos.lng, markerData.pos.lat])
+          .addTo(map);
+        markersRef.current.push(marker);
       });
     }
   }, [markers]);
 
   return (
-    <div ref={mapElement} style={{ width: '100%', height: '100%' }}></div>
+    <div 
+      ref={mapElement} 
+      style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0 }}
+    ></div>
   );
 };
 

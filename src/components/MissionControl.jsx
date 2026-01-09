@@ -15,11 +15,7 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
     else setDeliveryQuery(query);
 
     if (query.length > 2) {
-      const response = await ttServices.services.fuzzySearch({
-        key: apiKey,
-        query: query,
-        limit: 5
-      });
+      const response = await ttServices.services.fuzzySearch({ key: apiKey, query: query, limit: 5 });
       setSuggestions(response.results);
     } else {
       setSuggestions([]);
@@ -31,71 +27,54 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
     if (activeInput === 'start') {
       setStartPoint(point);
       setStartQuery(point.name);
-      onAddMarker(point.pos, 'green'); // Start marker
+      onAddMarker(point.pos, '#10b981'); // Start
     } else {
       setDeliveryList([...deliveryList, point]);
       setDeliveryQuery('');
-      onAddMarker(point.pos, 'blue'); // Delivery marker
+      onAddMarker(point.pos, '#3b82f6'); // Stop
     }
     setSuggestions([]);
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f5', padding: '40px', color: '#1a1a1a', fontFamily: 'sans-serif' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        <h1 style={{ color: '#0052cc', fontSize: '2.5rem', marginBottom: '30px' }}>Driver Mission Control</h1>
+    <div style={{ height: '100vh', overflowY: 'auto', background: '#f1f5f9', padding: '40px' }}>
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h2 style={{ color: '#1e293b', marginBottom: '30px' }}>Logistics Command Center</h2>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-          {/* Driver Info Card */}
-          <div style={cardStyle}>
-            <h3 style={cardHeaderStyle}>Personal & Vehicle Details</h3>
-            <div style={infoRow}><span>Driver Name:</span> <strong>{driver.name}</strong></div>
-            <div style={infoRow}><span>Driver ID:</span> <strong>{driver.id}</strong></div>
-            <div style={infoRow}><span>Assigned Vehicle:</span> <strong>{driver.vehicle}</strong></div>
-            <div style={infoRow}><span>Shift Started:</span> <strong>{loginTime}</strong></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+          <div style={card}>
+            <h4 style={cardTitle}>Driver Info</h4>
+            <p>ID: {driver.id}</p>
+            <p>Name: {driver.name}</p>
+            <p>Shift: {loginTime}</p>
           </div>
-
-          {/* Route Planning Card */}
-          <div style={cardStyle}>
-            <h3 style={cardHeaderStyle}>Mission Destinations</h3>
-            <div style={{position: 'relative', marginBottom: '15px'}}>
-               <label style={labelStyle}>Set Origin (Start Point)</label>
-               <input style={inputStyle} value={startQuery} onChange={(e) => handleSearch(e.target.value, 'start')} placeholder="Search starting point..." />
-            </div>
-            <div style={{position: 'relative'}}>
-               <label style={labelStyle}>Add Delivery Stop</label>
-               <input style={inputStyle} value={deliveryQuery} onChange={(e) => handleSearch(e.target.value, 'delivery')} placeholder="Type destination address..." />
-               
-               {suggestions.length > 0 && (
-                  <div style={suggestionBoxStyle}>
-                    {suggestions.map((s, i) => (
-                      <div key={i} onClick={() => selectSuggestion(s)} style={suggestionItemStyle}>{s.address.freeformAddress}</div>
-                    ))}
-                  </div>
-               )}
+          <div style={card}>
+            <h4 style={cardTitle}>Route Planning</h4>
+            <input style={input} value={startQuery} onChange={(e) => handleSearch(e.target.value, 'start')} placeholder="Origin Address" />
+            <div style={{position: 'relative', marginTop: '10px'}}>
+              <input style={input} value={deliveryQuery} onChange={(e) => handleSearch(e.target.value, 'delivery')} placeholder="Add Delivery Address" />
+              {suggestions.length > 0 && (
+                <div style={dropdown}>
+                  {suggestions.map((s, i) => (
+                    <div key={i} onClick={() => selectSuggestion(s)} style={dropdownItem}>{s.address.freeformAddress}</div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Itinerary List */}
-        <div style={{ ...cardStyle, marginTop: '30px' }}>
-          <h3 style={cardHeaderStyle}>Current Itinerary Stops</h3>
-          {deliveryList.length === 0 ? <p style={{color: '#888'}}>No delivery stops added yet.</p> : (
-            <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-               {deliveryList.map((stop, i) => (
-                <div key={i} style={stopItemStyle}>
-                  <span style={indexStyle}>{i + 1}</span> {stop.name}
-                </div>
-              ))}
-            </div>
-          )}
-          
+        <div style={card}>
+          <h4 style={cardTitle}>Itinerary</h4>
+          {deliveryList.map((stop, i) => (
+            <div key={i} style={itineraryItem}>📍 {stop.name}</div>
+          ))}
           <button 
-            onClick={() => onPlanRoute(startPoint, deliveryList)}
+            style={btn} 
             disabled={!startPoint || deliveryList.length === 0}
-            style={{...btnStyle, background: (!startPoint || deliveryList.length === 0) ? '#ccc' : '#28a745'}}
+            onClick={() => onPlanRoute(startPoint, deliveryList)}
           >
-            CONFIRM MISSION & OPTIMIZE ROUTE
+            OPTIMIZE & START MISSION
           </button>
         </div>
       </div>
@@ -103,15 +82,12 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
   );
 };
 
-const cardStyle = { background: 'white', padding: '25px', borderRadius: '15px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', border: '1px solid #e0e0e0' };
-const cardHeaderStyle = { color: '#0052cc', borderBottom: '2px solid #f0f2f5', paddingBottom: '15px', marginTop: 0, marginBottom: '20px' };
-const infoRow = { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #fafafa', fontSize: '1.1rem' };
-const labelStyle = { display: 'block', fontWeight: 'bold', marginBottom: '5px', fontSize: '0.9rem', color: '#666' };
-const inputStyle = { width: '100%', padding: '12px', border: '2px solid #ddd', borderRadius: '8px', fontSize: '1rem', boxSizing: 'border-box', color: '#000' };
-const suggestionBoxStyle = { position: 'absolute', width: '100%', background: 'white', zIndex: 1000, boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: '8px', marginTop: '5px' };
-const suggestionItemStyle = { padding: '12px', cursor: 'pointer', borderBottom: '1px solid #eee', color: '#333' };
-const stopItemStyle = { background: '#f8faff', padding: '15px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #eef2ff', color: '#333' };
-const indexStyle = { background: '#0052cc', color: 'white', width: '25px', height: '25px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem' };
-const btnStyle = { width: '100%', padding: '20px', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem', marginTop: '25px' };
+const card = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
+const cardTitle = { margin: '0 0 15px 0', color: '#3b82f6' };
+const input = { width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' };
+const dropdown = { position: 'absolute', background: 'white', width: '100%', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '6px' };
+const dropdownItem = { padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' };
+const itineraryItem = { padding: '10px', background: '#f8fafc', marginBottom: '5px', borderRadius: '4px', fontSize: '14px' };
+const btn = { width: '100%', padding: '15px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', marginTop: '15px' };
 
 export default MissionControl;
