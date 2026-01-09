@@ -1,32 +1,92 @@
 import React, { useState } from 'react';
 
 const LoginPage = ({ onLogin }) => {
-  const [driverId, setDriverId] = useState('');
-  const [password, setPassword] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [formData, setFormData] = useState({ id: '', password: '' });
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (driverId && password) {
-      onLogin({ id: driverId, name: "Operator " + driverId });
-    }
+    // Logic: Pass 'manager' or 'driver' role back to App.jsx
+    const role = isAdmin ? "manager" : "driver";
+    onLogin({ 
+        id: formData.id, 
+        name: `${isAdmin ? 'Manager' : 'Operator'} ${formData.id}`, 
+        role: role 
+    });
   };
 
   return (
-    <div style={{ height: '100vh', width: '100vw', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#0f172a' }}>
-      <div style={{ width: '350px', padding: '40px', background: 'white', borderRadius: '16px', textAlign: 'center' }}>
-        <h2 style={{ color: '#3b82f6', margin: '0 0 10px 0' }}>Fleet AI</h2>
-        <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '30px' }}>Secure Driver Access</p>
-        <form onSubmit={handleSubmit}>
-          <input type="text" placeholder="Driver ID" style={inputStyle} onChange={(e) => setDriverId(e.target.value)} />
-          <input type="password" placeholder="Password" style={inputStyle} onChange={(e) => setPassword(e.target.value)} />
-          <button type="submit" style={buttonStyle}>Login to Mission Control</button>
+    <div style={fullPageBg}>
+      <div style={cardContainer}>
+        <div style={headerSection}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: '0' }}>Fleet Management</h2>
+          <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Access your vehicle & driver dashboard</p>
+        </div>
+
+        {/* Tab Switcher */}
+        <div style={{ display: 'flex', background: '#f9fafb' }}>
+          <button 
+            type="button"
+            onClick={() => { setIsAdmin(false); setFormData({id:'', password:''}); }}
+            style={!isAdmin ? activeDriverTab : inactiveTab}
+          >
+            DRIVER LOGIN
+          </button>
+          <button 
+            type="button"
+            onClick={() => { setIsAdmin(true); setFormData({id:'', password:''}); }}
+            style={isAdmin ? activeManagerTab : inactiveTab}
+          >
+            MANAGER LOGIN
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ padding: '32px' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>{isAdmin ? "Manager ID" : "Driver ID"}</label>
+            <input 
+              type="text" name="id" value={formData.id}
+              onChange={handleInputChange} placeholder={isAdmin ? "M-1001" : "DRV-9912"}
+              style={inputStyle} required
+            />
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={labelStyle}>Password</label>
+            <input 
+              type="password" name="password" value={formData.password}
+              onChange={handleInputChange} placeholder="••••••••"
+              style={inputStyle} required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            style={{...submitBtnBase, backgroundColor: isAdmin ? '#2563eb' : '#16a34a'}}
+          >
+            Login as {isAdmin ? "Manager" : "Driver"}
+          </button>
         </form>
+        <div style={footerStyle}>Vehicle & Driver Tracking System v2.0</div>
       </div>
     </div>
   );
 };
 
-const inputStyle = { width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box' };
-const buttonStyle = { width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
+// Styles
+const fullPageBg = { height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', fontFamily: 'sans-serif' };
+const cardContainer = { background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px', overflow: 'hidden' };
+const headerSection = { padding: '24px', textAlign: 'center', borderBottom: '1px solid #e5e7eb' };
+const labelStyle = { display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '8px' };
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #d1d5db', boxSizing: 'border-box' };
+const footerStyle = { padding: '16px', background: '#f9fafb', textAlign: 'center', fontSize: '12px', color: '#9ca3af' };
+const inactiveTab = { flex: 1, padding: '16px 0', fontSize: '14px', fontWeight: '600', border: 'none', background: 'transparent', color: '#9ca3af', cursor: 'pointer' };
+const activeDriverTab = { flex: 1, padding: '16px 0', fontSize: '14px', fontWeight: '600', border: 'none', background: 'white', color: '#16a34a', borderBottom: '3px solid #16a34a', cursor: 'pointer' };
+const activeManagerTab = { flex: 1, padding: '16px 0', fontSize: '14px', fontWeight: '600', border: 'none', background: 'white', color: '#2563eb', borderBottom: '3px solid #2563eb', cursor: 'pointer' };
+const submitBtnBase = { width: '100%', padding: '12px', borderRadius: '8px', color: 'white', fontWeight: 'bold', fontSize: '18px', border: 'none', cursor: 'pointer' };
 
 export default LoginPage;
