@@ -23,26 +23,20 @@ function App() {
   };
 
   // Unified Logic to connect all points
-  const handlePlanRoute = (startPoint, stops) => {
-    if (!startPoint || stops.length === 0) return;
-
-    // Combine start and stops into one array for the service
-    const locations = [startPoint, ...stops]
-      .map(s => `${s.pos.lng},${s.pos.lat}`)
-      .join(':');
-
-    ttServices.services.calculateRoute({
-      key: API_KEY,
-      locations: locations,
-      computeBestOrder: true, // "AI Re-scoring": Finds the most efficient sequence
-      traffic: true,           // Real-time accident avoidance
-      routeType: 'fastest'     // Optimized for logistics speed
-    }).then(result => {
-      setRouteData(result.toGeoJson());
-    }).catch(err => {
-      console.error("Routing error:", err);
-    });
-  };
+  const handlePlanRoute = (start, stops) => {
+  // Combine start and all delivery stops into the locations string
+  const locations = [start, ...stops].map(s => `${s.pos.lng},${s.pos.lat}`).join(':');
+  
+  ttServices.services.calculateRoute({
+    key: API_KEY,
+    locations: locations,
+    computeBestOrder: true, // This re-orders your list for efficiency
+    traffic: true,
+    routeType: 'fastest'
+  }).then(result => {
+    setRouteData(result.toGeoJson());
+  });
+};
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', background: '#f4f7f9' }}>

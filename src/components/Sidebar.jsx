@@ -36,75 +36,87 @@ const Sidebar = ({ apiKey, onPlanRoute, onAddMarker }) => {
     if (activeInput === 'start') {
       setStartPoint(point);
       setStartQuery(point.name);
+      // Clear existing start marker and add new one
+      onAddMarker(point.pos, 'green', true); 
     } else {
-      setDeliveryList([...deliveryList, point]);
+      // APPEND to the list instead of replacing
+      setDeliveryList(prevList => [...prevList, point]);
       setDeliveryQuery('');
+      // Add a new marker without clearing old ones
+      onAddMarker(point.pos, 'blue', false); 
     }
     
-    // Show marker on map: green for start, blue for stops
-    onAddMarker(point.pos, activeInput === 'start' ? 'green' : 'blue'); 
     setSuggestions([]);
   };
 
   return (
-    <div className="sidebar" style={{ width: '380px', padding: '20px', background: '#fff', height: '100vh', borderRight: '1px solid #ddd' }}>
-      <h2>Driver Dashboard</h2>
+    <div className="sidebar" style={{ 
+      width: '380px', 
+      padding: '20px', 
+      background: '#ffffff', 
+      height: '100vh', 
+      borderRight: '1px solid #ddd',
+      zIndex: 10,
+      color: '#333'
+    }}>
+      <h2 style={{ color: '#0052cc' }}>Logistics Console</h2>
       
-      {/* STARTING POINT BOX */}
+      {/* Starting Point Input */}
       <div style={{ marginBottom: '15px' }}>
-        <label>Starting Point</label>
+        <label style={{ fontWeight: 'bold' }}>Origin</label>
         <input 
-          style={{ width: '100%', padding: '10px' }}
+          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #0052cc', color: '#000' }}
           value={startQuery}
           onChange={(e) => handleSearch(e.target.value, 'start')}
-          placeholder="Enter origin..."
+          placeholder="Set starting location..."
         />
       </div>
 
-      {/* DELIVERY POINTS BOX */}
-      <div style={{ marginBottom: '15px' }}>
-        <label>Add Delivery Stop</label>
+      {/* Multi-Delivery Input */}
+      <div style={{ marginBottom: '15px', position: 'relative' }}>
+        <label style={{ fontWeight: 'bold' }}>Add Delivery Stops</label>
         <input 
-          style={{ width: '100%', padding: '10px' }}
+          style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #ddd', color: '#000' }}
           value={deliveryQuery}
           onChange={(e) => handleSearch(e.target.value, 'delivery')}
-          placeholder="Enter destination..."
+          placeholder="Type next destination..."
         />
+
+        {/* Floating Suggestions */}
+        {suggestions.length > 0 && (
+          <div style={{ 
+            position: 'absolute', top: '100%', left: 0, right: 0, 
+            background: 'white', border: '1px solid #ccc', zIndex: 2000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+          }}>
+            {suggestions.map((s, i) => (
+              <div key={i} onClick={() => selectSuggestion(s)} style={{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #eee' }}>
+                {s.address.freeformAddress}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* SEARCH SUGGESTIONS */}
-      {suggestions.length > 0 && (
-        <div style={{ border: '1px solid #ccc', borderRadius: '4px', marginBottom: '10px' }}>
-          {suggestions.map((s, i) => (
-            <div 
-              key={i} 
-              onClick={() => selectSuggestion(s)}
-              style={{ padding: '10px', cursor: 'pointer', borderBottom: '1px solid #eee' }}
-            >
-              {s.address.freeformAddress}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* STOP LIST */}
-      <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+      {/* SCROLLABLE ITINERARY LIST */}
+      <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #eee', borderRadius: '8px', padding: '10px' }}>
+        <h4 style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#666' }}>STOPS IN QUEUE</h4>
         {deliveryList.map((stop, i) => (
-          <div key={i} style={{ padding: '8px', background: '#f8f9fa', marginBottom: '5px' }}>
-            {i + 1}. {stop.name}
+          <div key={i} style={{ padding: '10px', background: '#f0f4ff', marginBottom: '8px', borderRadius: '6px', fontSize: '14px', display: 'flex', justifyContent: 'space-between' }}>
+            <span>{i + 1}. {stop.name.split(',')[0]}</span>
+            <button onClick={() => setDeliveryList(deliveryList.filter((_, idx) => idx !== i))} style={{ border: 'none', background: 'none', color: 'red', cursor: 'pointer' }}>✕</button>
           </div>
         ))}
       </div>
 
       <button 
         onClick={() => onPlanRoute(startPoint, deliveryList)}
-        style={{ width: '100%', padding: '15px', background: '#28a745', color: '#fff', border: 'none', marginTop: '10px', fontWeight: 'bold' }}
+        style={{ width: '100%', padding: '15px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '8px', marginTop: '20px', fontWeight: 'bold', cursor: 'pointer' }}
         disabled={!startPoint || deliveryList.length === 0}
       >
-        OPTIMIZE AI ROUTE
+        GENERATE OPTIMIZED ROUTE
       </button>
     </div>
   );
-};
-
+}
 export default Sidebar;
