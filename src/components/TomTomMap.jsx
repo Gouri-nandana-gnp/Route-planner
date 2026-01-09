@@ -7,18 +7,18 @@ const TomTomMap = ({ apiKey, routeData, markers = [] }) => {
   const mapInstance = useRef();
   const markersRef = useRef([]);
 
-  // 1. Initialize Map
+  // initialization - YOUR ORIGINAL WORKING CODE
   useEffect(() => {
     const map = tt.map({
       key: apiKey,
       container: mapElement.current,
-      center: [76.2673, 9.9312], // Kochi area based on your screenshot
-      zoom: 10
+      center: [77.5946, 12.9716], 
+      zoom: 12
     });
-
+    
     map.on('load', () => {
-      map.addTier(new tt.TrafficIncidentTier({ key: apiKey }));
-      map.addTier(new tt.TrafficFlowTilesTier({ key: apiKey }));
+      map.addTier(new tt.TrafficIncidentTier({ key: apiKey })); 
+      map.addTier(new tt.TrafficFlowTilesTier({ key: apiKey })); 
       map.resize();
     });
 
@@ -26,81 +26,62 @@ const TomTomMap = ({ apiKey, routeData, markers = [] }) => {
     return () => map.remove();
   }, [apiKey]);
 
-  // 2. Draw Route (Enhanced Logic)
+  // Route drawing - YOUR ORIGINAL CODE + 1 SECOND DELAY FIX
   useEffect(() => {
-    const map = mapInstance.current;
+    if (mapInstance.current && routeData) {
+      
+      const drawLine = () => {
+        const map = mapInstance.current;
+        if (!map) return;
 
-    if (map && routeData) {
-      // Function to perform the actual drawing
-      const addRouteLayer = () => {
-        // Clean up previous route
         if (map.getLayer('route')) {
           map.removeLayer('route');
           map.removeSource('route');
         }
 
-        // Add Source and Layer
-        map.addSource('route', {
-          type: 'geojson',
-          data: routeData
-        });
-
         map.addLayer({
-          id: 'route',
-          type: 'line',
-          source: 'route',
-          layout: {
+          'id': 'route',
+          'type': 'line',
+          'source': { 'type': 'geojson', 'data': routeData },
+          'paint': { 
+            'line-color': '#4285F4', // CHANGED TO BLUE
+            'line-width': 8          // THICKER FOR VISIBILITY
+          },
+          'layout': {
             'line-join': 'round',
             'line-cap': 'round'
-          },
-          paint: {
-            'line-color': '#007bff', // Bright Blue
-            'line-width': 6,
-            'line-opacity': 0.8
           }
         });
 
-        // Zoom to fit the route
         const bounds = new tt.LngLatBounds();
         routeData.features[0].geometry.coordinates.forEach(point => bounds.extend(point));
         map.fitBounds(bounds, { padding: 50 });
       };
 
-      // CRITICAL FIX: Wait for Style to load
-      if (!map.isStyleLoaded()) {
-        map.once('styledata', addRouteLayer);
-      } else {
-        addRouteLayer();
-      }
+      // FIX: Wait 1 second so the map finishes loading tiles before we draw the line
+      setTimeout(drawLine, 1000);
     }
   }, [routeData]);
 
-  // 3. Draw Markers (Using standard tt.Marker for reliability)
+  // Markers - YOUR ORIGINAL WORKING CODE
   useEffect(() => {
-    const map = mapInstance.current;
-    if (map) {
-      // Clear old markers
+    if (mapInstance.current) {
       markersRef.current.forEach(m => m.remove());
       markersRef.current = [];
 
-      // Add new markers
-      markers.forEach(markerData => {
-        const marker = new tt.Marker({
-          color: markerData.color || '#333'
+      markers.forEach(marker => {
+        const newMarker = new tt.Marker({
+          color: marker.color
         })
-          .setLngLat([markerData.pos.lng, markerData.pos.lat])
-          .addTo(map);
-        markersRef.current.push(marker);
+        .setLngLat([marker.pos.lng, marker.pos.lat])
+        .addTo(mapInstance.current);
+        
+        markersRef.current.push(newMarker);
       });
     }
   }, [markers]);
 
-  return (
-    <div 
-      ref={mapElement} 
-      style={{ width: '100vw', height: '100vh', position: 'absolute', top: 0, left: 0 }}
-    ></div>
-  );
+  return <div ref={mapElement} style={{ height: '100%', width: '100%', background: '#222' }} />;
 };
 
 export default TomTomMap;
