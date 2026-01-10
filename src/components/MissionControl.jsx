@@ -8,6 +8,9 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
   const [suggestions, setSuggestions] = useState([]);
   const [deliveryList, setDeliveryList] = useState([]);
   const [activeInput, setActiveInput] = useState('');
+  
+  // NEW: State for tomorrow's prediction
+  const [departureTime, setDepartureTime] = useState('');
 
   const handleSearch = async (query, type) => {
     setActiveInput(type);
@@ -27,11 +30,11 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
     if (activeInput === 'start') {
       setStartPoint(point);
       setStartQuery(point.name);
-      onAddMarker(point.pos, '#10b981'); // Start
+      onAddMarker(point.pos, '#10b981');
     } else {
       setDeliveryList([...deliveryList, point]);
       setDeliveryQuery('');
-      onAddMarker(point.pos, '#3b82f6'); // Stop
+      onAddMarker(point.pos, '#3b82f6');
     }
     setSuggestions([]);
   };
@@ -39,7 +42,7 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: '#f1f5f9', padding: '40px' }}>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h2 style={{ color: '#1e293b', marginBottom: '30px' }}>Logistics Command Center</h2>
+        <h2 style={{ color: '#1e293b', marginBottom: '30px' }}>Driver Dashboard</h2>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
           <div style={card}>
@@ -61,6 +64,19 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
                 </div>
               )}
             </div>
+
+            {/* NEW: Time Picker for Future Prediction */}
+            <div style={{marginTop: '15px'}}>
+               <label style={{fontSize: '11px', fontWeight: 'bold', color: '#64748b', display: 'block', marginBottom: '5px'}}>
+                 SCHEDULE DEPARTURE (Tomorrow's Traffic)
+               </label>
+               <input 
+                 type="datetime-local" 
+                 style={input} 
+                 value={departureTime}
+                 onChange={(e) => setDepartureTime(e.target.value)} 
+               />
+            </div>
           </div>
         </div>
 
@@ -72,7 +88,8 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
           <button 
             style={btn} 
             disabled={!startPoint || deliveryList.length === 0}
-            onClick={() => onPlanRoute(startPoint, deliveryList)}
+            // MODIFIED: Pass the departureTime
+            onClick={() => onPlanRoute(startPoint, deliveryList, departureTime)}
           >
             OPTIMIZE & START MISSION
           </button>
@@ -84,7 +101,7 @@ const MissionControl = ({ driver, loginTime, onPlanRoute, onAddMarker, apiKey })
 
 const card = { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' };
 const cardTitle = { margin: '0 0 15px 0', color: '#3b82f6' };
-const input = { width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box' };
+const input = { width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', outline: 'none' };
 const dropdown = { position: 'absolute', background: 'white', width: '100%', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '6px' };
 const dropdownItem = { padding: '10px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' };
 const itineraryItem = { padding: '10px', background: '#f8fafc', marginBottom: '5px', borderRadius: '4px', fontSize: '14px' };

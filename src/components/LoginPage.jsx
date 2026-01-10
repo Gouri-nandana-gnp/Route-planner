@@ -23,7 +23,7 @@ const LoginPage = ({ onLogin }) => {
     <div style={fullPageBg}>
       <div style={cardContainer}>
         <div style={headerSection}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: '0' }}>Fleet Management</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: '0' }}>Route Planner</h2>
           <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Access your vehicle & driver dashboard</p>
         </div>
 
